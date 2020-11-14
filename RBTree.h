@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include <random>
+#include <chrono>
+#include <algorithm>
 
 class RBTree {
 private:
@@ -18,8 +21,8 @@ private:
         }
     };
 
-    Node* root;
-    int nodes_number; // number of nodes in tree
+Node* root;
+int nodes_number; // number of nodes in tree
 
     Node* add_node (int n) {
         Node* x = new Node(n);
@@ -62,8 +65,7 @@ private:
         Node* y = x->right;
 
         x->right = y->left;
-        if (!y->left) {
-            y->left->parent = x;
+        if (y->left != nullptr) {
             y->left->parent = x;
         }
 
@@ -82,7 +84,7 @@ private:
         Node* y = x->left;
 
         x->left = y->right;
-        if (!y->right) {
+        if (y->right != nullptr) {
             y->right->parent = x;
         }
 
@@ -182,65 +184,77 @@ private:
  * @param x -- child of the deleted element or nullptr if deleted element had no children
  */
     void rbtree_delete_fixup (Node* x) {
-        Node* w;
+        Node* b; // brother of x
 
-        while (x != root && x->color == "black") {
+        while ((x != root) && (x->color == "black")) {
+
             // case x is left child
             if (x == x->parent->left) {
-                w = x->parent->right;
-
-                if (w->color == "red") {
-                    w->color = "black";
+                b = x->parent->right;
+                if (b == nullptr)
+                    break;
+                if (b->left == nullptr or b->right == nullptr)
+                    break;
+                if (b->color == "red") {
+                    b->color = "black";
                     left_rotate(x->parent);
-                    w = x->parent->right;
+                    b = x->parent->right;
                 }
 
-                if ((w->left->color == "black") && (w->right->color == "black")) {
-                    w->color = "red";
+                if ((b->left == nullptr or b->left->color == "black") && (b->right == nullptr or b->right->color == "black")) {
+                    b->color = "red";
                     x = x->parent;
                 } else {
-                    if (w->right->color == "black") {
-                        w->left->color = "black";
-                        w->color = "red";
-                        right_rotate(w);
-                        w = x->parent->right;
-                    }
+                    if (b->right != nullptr) {
+                        if (b->right->color == "black") {
+                            b->left->color = "black";
+                            b->color = "red";
+                            right_rotate(b);
+                            b = x->parent->right;
+                        }
 
-                    w->color = x->parent->color;
-                    x->parent->color = "black";
-                    w->right->color = "black";
-                    left_rotate(x->parent);
-                    x = root;
+                        b->color = x->parent->color;
+                        x->parent->color = "black";
+                        b->right->color = "black";
+                        left_rotate(x->parent);
+                        x = root;
+                    }
                 }
             }
-                //case x is right child, symmetrical
+
+            //case x is right child, symmetrical
+
             else if (x == x->parent->right) {
-                w = x->parent->left;
-
-                if (w->color == "red") {
-                    w->color = "black";
+                b = x->parent->left;
+                if (b == nullptr)
+                    break;
+                if (b->left == nullptr or b->right == nullptr)
+                    break;
+                if (b->color == "red") {
+                    b->color = "black";
                     right_rotate(x->parent);
-                    w = x->parent->left;
+                    b = x->parent->left;
                 }
-
-                if ((w->left->color == "black") && (w->right->color == "black")) {
-                    w->color = "red";
+                if ((b->left == nullptr or b->left->color == "black") && (b->right == nullptr or b->right->color == "black")) {
+                    b->color = "red";
                     x = x->parent;
                 } else {
-                    if (w->left->color == "black") {
-                        w->right->color = "black";
-                        w->color = "red";
-                        right_rotate(w);
-                        w = x->parent->right;
-                    }
+                    if (b->left != nullptr) {
+                        if (b->left->color == "black") {
+                            b->right->color = "black";
+                            b->color = "red";
+                            right_rotate(b);
+                            b = x->parent->left;
+                        }
 
-                    w->color = x->parent->color;
-                    x->parent->color = "black";
-                    w->left->color = "black";
-                    right_rotate(x->parent);
-                    x = root;
+                        b->color = x->parent->color;
+                        x->parent->color = "black";
+                        b->left->color = "black";
+                        right_rotate(x->parent);
+                        x = root;
+                    }
                 }
-            }
+            } else break;
         }
         x->color = "black";
     }
@@ -352,21 +366,44 @@ public:
         nodes_number++;
     }
 
-    void delete_elem (Node* x) {
-        rbtree_delete(x);
+    void erase (Node* x) {
+        if (x != nullptr) {
+            rbtree_delete(x);
+            nodes_number--;
+        }
+        else return;
     }
 
-    void delete_elem (int n) {
+    void erase (int n) {
         Node* x = search(root, n);
         if (x != nullptr) {
             rbtree_delete(x);
             nodes_number--;
         }
-        else std::cout << "There is no such element in tree." << std::endl;
+        else return;
     }
-
-
+/*
     ~RBTree() {
         clear(root);
     }
+*/
 };
+
+int rand_uns(int min, int max)
+{
+    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    static std::default_random_engine e(seed);
+    std::uniform_int_distribution<int> d(min, max);
+    return d(e);
+}
+
+int main() {
+    RBTree rbtree;
+    for(int j = 0; j < 1000; ++j) {
+        int num = rand_uns(1, 100);
+        rbtree.insert(num);
+    }
+    rbtree.erase(65);
+    std::cout << rbtree.root_value();
+}
+
